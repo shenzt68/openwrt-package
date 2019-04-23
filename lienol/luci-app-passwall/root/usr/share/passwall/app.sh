@@ -409,7 +409,7 @@ start_kcptun() {
 	if [ -z "$kcptun_bin" ]; then
 		echolog "找不到Kcptun客户端主程序，无法启用！！！" 
 	else
-		$kcptun_bin -l 0.0.0.0:$KCPTUN_REDIR_PORT -r $2:$3 $4 >/dev/null 2>&1 &
+		$kcptun_bin --log $CONFIG_PATH/kcptun -l 0.0.0.0:$KCPTUN_REDIR_PORT -r $2:$3 $4 >/dev/null 2>&1 &
 	fi
 }
 
@@ -417,8 +417,13 @@ start_tcp_redir() {
 	if [ "$TCP_REDIR_SERVER" != "nil" ];then
 		echolog "运行TCP透明代理..."
 		if [ "$TCP_REDIR_SERVER_TYPE" == "v2ray" ]; then
-			v2ray_bin=$(find_bin V2ray)
-			[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_TCP_FILE > /dev/null &
+			v2ray_path=$(config_t_get global_v2ray v2ray_client_file)
+			if [ -f "${v2ray_path}/v2ray" ];then
+				${v2ray_path}/v2ray -config=$CONFIG_TCP_FILE > /dev/null &
+			else
+				v2ray_bin=$(find_bin V2ray)
+				[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_TCP_FILE > /dev/null &
+			fi
 		elif [ "$TCP_REDIR_SERVER_TYPE" == "brook" ]; then
 			brook_bin=$(find_bin Brook)
 			[ -n "$brook_bin" ] && $brook_bin $BROOK_TCP_CMD &>/dev/null &
@@ -427,7 +432,7 @@ start_tcp_redir() {
 			[ -n "$ss_bin" ] && {
 				for i in $(seq 1 $process)
 				do
-					$ss_bin -c $CONFIG_TCP_FILE -f $RUN_PID_PATH/tcp_${TCP_REDIR_SERVER_TYPE}_$i -b :: > /dev/null 2>&1
+					$ss_bin -c $CONFIG_TCP_FILE -f $RUN_PID_PATH/tcp_${TCP_REDIR_SERVER_TYPE}_$i -b :: > /dev/null 2>&1 &
 				done
 			}
 		fi
@@ -438,15 +443,20 @@ start_udp_redir() {
 	if [ "$UDP_REDIR_SERVER" != "nil" ];then
 		echolog "运行UDP透明代理..." 
 		if [ "$UDP_REDIR_SERVER_TYPE" == "v2ray" ]; then
-			v2ray_bin=$(find_bin V2ray)
-			[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_UDP_FILE > /dev/null &
+			v2ray_path=$(config_t_get global_v2ray v2ray_client_file)
+			if [ -f "${v2ray_path}/v2ray" ];then
+				${v2ray_path}/v2ray -config=$CONFIG_UDP_FILE > /dev/null &
+			else
+				v2ray_bin=$(find_bin V2ray)
+				[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_UDP_FILE > /dev/null &
+			fi
 		elif [ "$UDP_REDIR_SERVER_TYPE" == "brook" ]; then
 			brook_bin=$(find_bin brook)
 			[ -n "$brook_bin" ] && $brook_bin $BROOK_UDP_CMD &>/dev/null &
 		else
 			ss_bin=$(find_bin "$UDP_REDIR_SERVER_TYPE"-redir)
 			[ -n "$ss_bin" ] && {
-				$ss_bin -c $CONFIG_UDP_FILE -f $RUN_PID_PATH/udp_${UDP_REDIR_SERVER_TYPE}_1 -U > /dev/null 2>&1
+				$ss_bin -c $CONFIG_UDP_FILE -f $RUN_PID_PATH/udp_${UDP_REDIR_SERVER_TYPE}_1 -U > /dev/null 2>&1 &
 			}
 		fi
 	fi
@@ -456,14 +466,19 @@ start_socks5_proxy() {
 	if [ "$SOCKS5_PROXY_SERVER" != "nil" ];then
 		echolog "运行Socks5代理..."
 		if [ "$SOCKS5_PROXY_SERVER_TYPE" == "v2ray" ]; then
-			v2ray_bin=$(find_bin v2ray)
-			[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_SOCKS5_FILE > /dev/null &
+			v2ray_path=$(config_t_get global_v2ray v2ray_client_file)
+			if [ -f "${v2ray_path}/v2ray" ];then
+				${v2ray_path}/v2ray -config=$CONFIG_SOCKS5_FILE > /dev/null &
+			else
+				v2ray_bin=$(find_bin V2ray)
+				[ -n "$v2ray_bin" ] && $v2ray_bin -config=$CONFIG_SOCKS5_FILE > /dev/null &
+			fi
 		elif [ "$SOCKS5_PROXY_SERVER_TYPE" == "brook" ]; then
 			brook_bin=$(find_bin brook)
 			[ -n "$brook_bin" ] && $brook_bin $BROOK_SOCKS5_CMD &>/dev/null &
 		else
 			ss_bin=$(find_bin "$SOCKS5_PROXY_SERVER_TYPE"-local)
-			[ -n "$ss_bin" ] && $ss_bin -c $CONFIG_SOCKS5_FILE -b 0.0.0.0 > /dev/null 2>&1
+			[ -n "$ss_bin" ] && $ss_bin -c $CONFIG_SOCKS5_FILE -b 0.0.0.0 > /dev/null 2>&1 &
 		fi
 	fi
 }
@@ -497,14 +512,14 @@ set_cru() {
 
 	if [ "$autoupdatesubscribe" = "1" ];then
 		if [ "$weekupdatesubscribe" = "7" ];then
-			echo "0 $dayupdatesubscribe * * * $SS_PATH/onlineconfig.sh" >> /etc/crontabs/root
+			echo "0 $dayupdatesubscribe * * * $SS_PATH/subscription.sh" >> /etc/crontabs/root
 			echolog "设置服务器订阅自动更新规则在每天 $dayupdatesubscribe 点。" 
 		else
-			echo "0 $dayupdatesubscribe * * $weekupdate $SS_PATH/onlineconfig.sh" >> /etc/crontabs/root
+			echo "0 $dayupdatesubscribe * * $weekupdate $SS_PATH/subscription.sh" >> /etc/crontabs/root
 			echolog "设置服务器订阅自动更新规则在星期 $weekupdate 的 $dayupdatesubscribe 点。" 
 		fi
 	else
-		sed -i '/onlineconfig.sh/d' /etc/crontabs/root >/dev/null 2>&1 &
+		sed -i '/subscription.sh/d' /etc/crontabs/root >/dev/null 2>&1 &
 	fi
 }
 
@@ -985,7 +1000,7 @@ del_vps_port() {
 
 dns_hijack(){
 	dnshijack=$(config_t_get global_dns dns_53)
-	if [ "$dnshijack" = "1" ];then
+	if [ "$dnshijack" = "1" -o "$1" = "force" ];then
 		chromecast_nu=`$iptables_nat -L SS -v -n --line-numbers|grep "dpt:53"|awk '{print $1}'`
 		is_right_lanip=`$iptables_nat -L SS -v -n --line-numbers|grep "dpt:53" |grep "$lanip"`
 		if [ -z "$chromecast_nu" ]; then
@@ -1192,9 +1207,9 @@ EOF
 		
 			#  用于本机流量转发，默认只走router
 			#$iptables_nat -I OUTPUT -j SS
-			$iptables_nat -A OUTPUT -p tcp -m multiport --dport $TCP_REDIR_PORTS -m set --match-set $IPSET_LANIPLIST dst -j RETURN
-			$iptables_nat -A OUTPUT -p tcp -m multiport --dport $TCP_REDIR_PORTS -m set --match-set $IPSET_VPSIPLIST dst -j RETURN
-			$iptables_nat -A OUTPUT -p tcp -m multiport --dport $TCP_REDIR_PORTS -m set --match-set $IPSET_WHITELIST dst -j RETURN
+			$iptables_nat -A OUTPUT -m set --match-set $IPSET_LANIPLIST dst -j RETURN
+			$iptables_nat -A OUTPUT -m set --match-set $IPSET_VPSIPLIST dst -j RETURN
+			$iptables_nat -A OUTPUT -m set --match-set $IPSET_WHITELIST dst -j RETURN
 			$iptables_nat -A OUTPUT -p tcp -m multiport --dport $TCP_REDIR_PORTS -m set --match-set $IPSET_ROUTER dst -j REDIRECT --to-ports $TCP_REDIR_PORT
 			$iptables_nat -A OUTPUT -p tcp -m multiport --dport $TCP_REDIR_PORTS -m set --match-set $IPSET_BLACKLIST dst -j REDIRECT --to-ports $TCP_REDIR_PORT
 			
@@ -1252,6 +1267,7 @@ EOF
 			[ "$TCP_REDIR_SERVER" != "nil" ] && $iptables_mangle -A SS_ACL -p tcp -m comment --comment "Default" -j $(get_action_chain $PROXY_MODE)
 			[ "$UDP_REDIR_SERVER" != "nil" ] && $iptables_mangle -A SS_ACL -p udp -m comment --comment "Default" -j $(get_action_chain $PROXY_MODE)
 		else
+			[ "$PROXY_MODE" == "gfwlist" ] && dns_hijack "force"
 			[ "$TCP_REDIR_SERVER" != "nil" ] && $iptables_mangle -A SS_ACL -p tcp -m multiport --dport $TCP_REDIR_PORTS -m comment --comment "Default" -j $(get_action_chain $PROXY_MODE)
 			[ "$UDP_REDIR_SERVER" != "nil" ] && $iptables_mangle -A SS_ACL -p udp -m multiport --dport $UDP_REDIR_PORTS -m comment --comment "Default" -j $(get_action_chain $PROXY_MODE)
 		fi
@@ -1398,9 +1414,10 @@ stop() {
 	ipset -F $IPSET_VPSIPLIST >/dev/null 2>&1 && ipset -X $IPSET_VPSIPLIST >/dev/null 2>&1 &
 	ipset -F $IPSET_LANIPLIST >/dev/null 2>&1 && ipset -X $IPSET_LANIPLIST >/dev/null 2>&1 &
 	kill_all pdnsd Pcap_DNSProxy brook dns2socks haproxy dns-forwarder chinadns dnsproxy redsocks2
-	ps -w | grep -E "$CONFIG_TCP_FILE|$CONFIG_UDP_FILE|$CONFIG_SOCKS5_FILE" | grep -v "grep" | awk '{print $1}' | xargs kill -9
-	ps -w | grep "kcptun_client" | grep "$KCPTUN_REDIR_PORT" | grep -v "grep" | awk '{print $1}' | xargs kill -9
+	ps -w | grep -E "$CONFIG_TCP_FILE|$CONFIG_UDP_FILE|$CONFIG_SOCKS5_FILE" | grep -v "grep" | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
+	ps -w | grep "kcptun_client" | grep "$KCPTUN_REDIR_PORT" | grep -v "grep" | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1 &
 	rm -rf /var/pdnsd/pdnsd.cache
+	rm -rf $TMP_DNSMASQ_PATH
 	rm -rf $CONFIG_PATH
 	stop_dnsmasq
 	stop_crontab

@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Lienol
+# Copyright (C) 2018-2019 Lienol
 #
 # This is free software, licensed under the Apache License, Version 2.0 .
 #
@@ -7,7 +7,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-passwall
 PKG_VERSION:=2.0
-PKG_RELEASE:=43-20190216
+PKG_RELEASE:=58-20190415
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PO2LMO:=./po2lmo
@@ -16,7 +16,6 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)/config
 menu "Configuration"
-	depends on PACKAGE_$(PKG_NAME)
 	
 config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks
 	bool "Include Shadowsocks Redir (ss-redir)"
@@ -82,7 +81,7 @@ define Package/$(PKG_NAME)
   +PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_socks:shadowsocksr-libev-ssr-local \
   +PACKAGE_$(PKG_NAME)_INCLUDE_V2ray:v2ray \
   +PACKAGE_$(PKG_NAME)_INCLUDE_Brook:brook \
-  +PACKAGE_$(PKG_NAME)_INCLUDE_kcptun:kcptun \
+  +PACKAGE_$(PKG_NAME)_INCLUDE_kcptun:kcptun-client \
   +PACKAGE_$(PKG_NAME)_INCLUDE_haproxy:haproxy \
   +PACKAGE_$(PKG_NAME)_INCLUDE_ChinaDNS:ChinaDNS \
   +PACKAGE_$(PKG_NAME)_INCLUDE_pdnsd:pdnsd-alt \
@@ -105,6 +104,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/usr/share/passwall
 	$(INSTALL_CONF) ./root/etc/config/passwall $(1)/etc/config/passwall
+	$(INSTALL_CONF) ./root/etc/config/passwall_show $(1)/etc/config/passwall_show
 	$(INSTALL_CONF) ./root/etc/uci-defaults/* $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./root/etc/init.d/passwall $(1)/etc/init.d/passwall
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci

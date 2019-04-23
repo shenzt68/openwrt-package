@@ -1,21 +1,21 @@
 -- Copyright 2016-2017 Xingwang Liao <kuoruan@gmail.com>
--- Copyright 2018 Lienol <lienol@qq.com>
+-- Copyright 2018-2019 Lienol <lawlienol@gmail.com>
 -- Licensed to the public under the Apache License 2.0.
 
+module("luci.model.cbi.passwall.api.kcptun", package.seeall)
 local fs   = require "nixio.fs"
 local sys  = require "luci.sys"
 local uci  = require "luci.model.uci".cursor()
 local util = require "luci.util"
 local i18n = require "luci.i18n"
-
-module("luci.model.cbi.passwall.api.kcptun", package.seeall)
+local ipkg = require "luci.model.ipkg"
 
 local kcptun_api = "https://api.github.com/repos/xtaci/kcptun/releases/latest"
 
 local wget = "/usr/bin/wget"
-local wget_args = { "--no-check-certificate", "--quiet", "--timeout=10", "--tries=2" }
+local wget_args = { "--no-check-certificate", "--quiet", "--timeout=100", "--tries=3" }
 local curl = "/usr/bin/curl"
-local command_timeout = 40
+local command_timeout = 300
 
 local function _unpack(t, i)
 	i = i or 1
@@ -149,27 +149,15 @@ local function get_api_json(url)
 	return jsonc.parse(json_content) or { }
 end
 
-function get_config_option(option, default)
-	return uci:get("kcptun", "general", option) or default
-end
-
-function get_current_log_file(type)
-	local log_folder = get_config_option("log_folder", "/var/log/kcptun")
-	return "%s/%s.%s.log" % { log_folder, type, "general" }
-end
-
-function is_running(client)
-	if client and client ~= "" then
-		local file_name = client:match(".*/([^/]+)$") or ""
-		if file_name ~= "" then
-			return sys.call("pidof %s >/dev/null" % file_name) == 0
-		end
-	end
-
-	return false
+function get_kcptun_file_path()
+	return uci:get("passwall", "global_kcptun", "kcptun_client_file") or luci.sys.exec("echo -n `uci get passwall.@global_kcptun[0].kcptun_client_file`")
 end
 
 function get_kcptun_version(file)
+	if file == nil then
+		file = get_kcptun_file_path()
+	end
+	
 	if file and file ~= "" then
 		if not fs.access(file, "rwx", "rx", "rx") then
 			fs.chmod(file, 755)
@@ -211,7 +199,7 @@ function to_check(arch)
 
 	local remote_version = json.tag_name:match("[^v]+")
 
-	local client_file = get_config_option("kcptun_client_file")
+	local client_file = get_kcptun_file_path()
 
 	local needs_update = compare_versions(get_kcptun_version(client_file), "<", remote_version)
 	local html_url, download_url
@@ -344,7 +332,7 @@ function to_move(file)
 		}
 	end
 
-	local client_file = get_config_option("kcptun_client_file", "/usr/bin/kcptun_client")
+	local client_file = get_kcptun_file_path()
 	local client_file_bak
 
 	if fs.access(client_file) then

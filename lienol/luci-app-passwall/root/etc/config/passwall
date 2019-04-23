@@ -36,6 +36,8 @@ config global_proxy
 	option socks5_port '1033'
 	option kcptun_port '11183'
 	option proxy_ipv6 '0'
+	
+config global_other
 
 config global_rules
 	option gfwlist_update '1'
@@ -43,11 +45,14 @@ config global_rules
 	option Pcap_Routing_update '1'
 	option Pcap_WhiteList_update '1'
 	option auto_update '0'
-	option gfwlist_version '2019-02-05'
-	option chnroute_version '2019-02-05'
+	option gfwlist_version '2019-04-10'
+	option chnroute_version '2019-04-10'
 
+config global_v2ray
+	option v2ray_client_file '/usr/bin/v2ray/'
+	
 config global_kcptun
-	option kcptun_client_file '/usr/bin/kcptun_client'
+	option kcptun_client_file '/usr/bin/kcptun-client'
 
 config global_subscribe
 	option subscribe_by_ss '0'

@@ -9,7 +9,11 @@ function index()
 		return
 	end
 	entry({"admin","vpn"}, firstchild(), "VPN", 45).dependent = false
-	entry({"admin","vpn","passwall"},alias("admin","vpn","passwall","settings"),_("Pass Wall"),2).dependent=true
+	entry({"admin","vpn","passwall","show"},call("show_menu")).leaf=true
+	entry({"admin","vpn","passwall","hide"},call("hide_menu")).leaf=true
+	if nixio.fs.access("/etc/config/passwall") and nixio.fs.access("/etc/config/passwall_show") then
+		entry({"admin","vpn","passwall"},alias("admin","vpn","passwall","settings"),_("Pass Wall"),2).dependent=true
+	end
 	entry({"admin","vpn","passwall","settings"},cbi("passwall/global"),_("Basic Settings"),1).dependent=true
 	entry({"admin","vpn","passwall","server_list"},cbi("passwall/server_list"),_("Server List"),2).dependent=true
 	entry({"admin","vpn","passwall","auto_switch"},cbi("passwall/auto_switch"),_("Auto Switch"),3).leaf=true
@@ -23,6 +27,7 @@ function index()
 	entry({"admin","vpn","passwall","log"},cbi("passwall/log"),_("Watch Logs"),99).leaf=true
 	entry({"admin","vpn","passwall","serverconfig"},cbi("passwall/serverconfig")).leaf=true
 	
+	entry({"admin","vpn","passwall","link_add_server"},call("link_add_server")).leaf=true
 	entry({"admin","vpn","passwall","get_log"},call("get_log")).leaf=true
 	entry({"admin","vpn","passwall","clear_log"},call("clear_log")).leaf=true
 	entry({"admin","vpn","passwall","server_status"},call("server_status")).leaf=true
@@ -42,13 +47,35 @@ local function http_write_json(content)
 	http.write_json(content or { code = 1 })
 end
 
+function show_menu()
+	luci.sys.call("touch /etc/config/passwall_show")
+	luci.http.redirect(luci.dispatcher.build_url("admin","vpn","passwall"))
+end
+
+function hide_menu()
+	luci.sys.call("rm -rf /etc/config/passwall_show")
+	luci.http.redirect(luci.dispatcher.build_url("admin","status","overview"))
+end
+
+function link_add_server()
+	local type = luci.http.formvalue("type")
+	local link = luci.http.formvalue("link")
+	if type == "SSR" then
+		luci.sys.call('rm -f /tmp/ssr_links.conf && echo "' .. link .. '" >> /tmp/ssr_links.conf')
+		luci.sys.call("/usr/share/passwall/subscription_ssr.sh add >/dev/null")
+	elseif type == "V2ray" then
+		luci.sys.call('rm -f /tmp/v2ray_links.conf && echo "' .. link .. '" >> /tmp/v2ray_links.conf')
+		luci.sys.call("/usr/share/passwall/subscription_v2ray.sh add >/dev/null")
+	end
+end
+
 function get_log()
 	--luci.sys.exec("[ -f /var/log/passwall.log ] && sed '1!G;h;$!d' /var/log/passwall.log > /var/log/passwall_show.log")
 	luci.http.write(luci.sys.exec("cat /var/log/passwall.log"))
 end
 
 function clear_log()
-	luci.sys.exec("rm -rf > /var/log/passwall.log")
+	luci.sys.call("rm -rf > /var/log/passwall.log")
 end
 
 function server_status()
@@ -56,12 +83,12 @@ function server_status()
 	local udp_redir_port = luci.sys.exec("echo -n `uci get " .. appname .. ".@global_proxy[0].udp_redir_port`")
 	local dns_mode = luci.sys.exec("echo -n `uci get " .. appname .. ".@global[0].dns_mode`")
 	local e={}
-	e.tcp_redir_status=luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/TCP|brook tproxy -l 0.0.0.0:" .. tcp_redir_port .. "' >/dev/null")==0
-	e.udp_redir_status=luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/UDP|brook tproxy -l 0.0.0.0:" .. udp_redir_port .. "' >/dev/null")==0
-	e.socks5_proxy_status=luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/SOCKS5|brook client' >/dev/null")==0
-	e.dns_mode_status=luci.sys.call("ps -w | grep -v grep | grep -i "..dns_mode.." >/dev/null")==0
-	e.haproxy_status=luci.sys.call("pgrep haproxy >/dev/null")==0
-	e.kcptun_status=luci.sys.call("pgrep kcptun >/dev/null")==0
+	e.tcp_redir_status = luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/TCP|brook tproxy -l 0.0.0.0:" .. tcp_redir_port .. "' >/dev/null") == 0
+	e.udp_redir_status = luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/UDP|brook tproxy -l 0.0.0.0:" .. udp_redir_port .. "' >/dev/null") == 0
+	e.socks5_proxy_status = luci.sys.call("ps -w | grep -v grep | grep -i -E '" .. appname .. "/SOCKS5|brook client' >/dev/null") == 0
+	e.dns_mode_status = luci.sys.call("ps -w | grep -v grep | grep -i "..dns_mode.." >/dev/null") == 0
+	e.haproxy_status = luci.sys.call("ps -w | grep -v grep | grep -i 'haproxy -f /var/etc/" .. appname .. "/haproxy.cfg' >/dev/null") == 0
+	e.kcptun_status = luci.sys.call("ps -w | grep -v grep | grep -i 'log /var/etc/" .. appname .. "/kcptun' >/dev/null") == 0
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(e)
 end
@@ -69,9 +96,9 @@ end
 function connect_status()
 	local e={}
 	if luci.http.formvalue("type") == "google" then
-		e.status=luci.sys.call("echo `curl -I -o /dev/null -s -m 10 --connect-timeout 5 -w %{http_code} 'https://www.google.com'`|grep 200 >/dev/null")==0
+		e.status=luci.sys.call("echo `curl -I -o /dev/null -s -m 10 --connect-timeout 5 -w %{http_code} 'https://www.google.com'` | grep 200 >/dev/null") == 0
 	else
-		e.status=luci.sys.call("echo `curl -I -o /dev/null -s -m 10 --connect-timeout 2 -w %{http_code} 'http://www.baidu.com'`|grep 200 >/dev/null")==0
+		e.status=luci.sys.call("echo `curl -I -o /dev/null -s -m 10 --connect-timeout 2 -w %{http_code} 'http://www.baidu.com'` | grep 200 >/dev/null") == 0
 	end
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(e)
@@ -80,7 +107,7 @@ end
 function act_ping()
 	local e={}
 	e.index=luci.http.formvalue("index")
-	e.ping=luci.sys.exec("ping -c 1 -W 1 %q 2>&1|grep -o 'time=[0-9]*.[0-9]'|awk -F '=' '{print$2}'"%luci.http.formvalue("domain"))
+	e.ping=luci.sys.exec("ping -c 1 -W 1 %q 2>&1 | grep -o 'time=[0-9]*.[0-9]' | awk -F '=' '{print$2}'"%luci.http.formvalue("domain"))
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(e)
 end

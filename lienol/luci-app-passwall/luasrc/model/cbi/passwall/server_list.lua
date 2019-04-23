@@ -8,29 +8,10 @@ local a,t,e
 a=Map(appname)
 
 -- [[ SS/SSR link Settings ]]--
-t=a:section(TypedSection,"global",translate("Add the server via the SS/SSR link"))
+t=a:section(TypedSection,"global",translate("Add the server via the link"))
 t.anonymous=true
 
-local i="/usr/share/passwall/ssr_link.conf"
-e=t:option(TextValue,"ssr_link",translate("SS/SSR Link"),translate("Please fill in the SS/SSR link and then click Add; each line of a link."))
-e.wrap="off"
-e.cfgvalue=function(s,s)
-return nixio.fs.readfile(i)or""
-end
-e.write=function(s,s,o)
-nixio.fs.writefile("/tmp/ssr_link",o:gsub("\r\n","\n"))
-if(luci.sys.call("cmp -s /tmp/ssr_link /usr/share/passwall/ssr_link.conf")==1)then
-nixio.fs.writefile(i,o:gsub("\r\n","\n"))
-end
-nixio.fs.remove("/tmp/ssr_link")
-end
-
-e=t:option(Button,"_add",translate("Add Server"))
-e.inputtitle=translate("Add")
-e.inputstyle="add"
-function e.write(e,e)
-luci.sys.exec("/usr/share/passwall/onlineconfig.sh add")
-end
+t:append(Template("passwall/server_list/link_add_server"))
 
 t=a:section(TypedSection,"servers",translate("Servers List"),translate("Make sure that the Kcptun parameters are configured under the servers to use the Kcptun fast switch."))
 t.anonymous=true
@@ -79,13 +60,13 @@ e=t:option(Flag,"use_kcp",translate("Kcptun Switch"))
 e.width="10%"
 
 e=t:option(DummyValue,"server",translate("Ping Latency"))
-e.template="passwall/ping"
+e.template="passwall/server_list/ping"
 e.width="10%"
 
 e=t:option(DummyValue,"apply",translate("Apply"))
 e.width="10%"
-e.template=appname.."/apply"
+e.template="passwall/server_list/apply"
 
-a:append(Template("passwall/server_list"))
+a:append(Template("passwall/server_list/server_list"))
 
 return a

@@ -169,6 +169,12 @@ msgstr "本机"
 msgid "Danger"
 msgstr "危险"
 
+msgid "Please Enter The Link"
+msgstr "请输入链接"
+
+msgid "Add Server"
+msgstr "添加服务器"
+
 msgid "The server client can also use this rule to scientifically surf the Internet"
 msgstr "本机服务器的客户端也可以使用这个代理模式上网"
 
@@ -397,8 +403,17 @@ msgstr "周"
 msgid "oclock"
 msgstr "点"
 
+msgid "Update..."
+msgstr "更新中"
+
 msgid "V2ray Update"
 msgstr "更新V2ray版本"
+
+msgid "V2ray client path"
+msgstr "V2ray客户端路径"
+
+msgid "if you want to run from memory, change the path, such as /tmp/v2ray/, Then save the application and update it manually."
+msgstr "如果你希望从内存中运行，请更改路径，例如/tmp/v2ray/，然后保存应用后，再手动更新。"
 
 msgid "Kcptun Update"
 msgstr "更新Kcptun客户端版本"
@@ -406,14 +421,20 @@ msgstr "更新Kcptun客户端版本"
 msgid "Kcptun client path"
 msgstr "Kcptun客户端路径"
 
+msgid "if you want to run from memory, change the path, such as /tmp/kcptun-client, Then save the application and update it manually."
+msgstr "如果你希望从内存中运行，请更改路径，例如/tmp/kcptun-client，然后保存应用后，再手动更新。"
+
 msgid "Make sure there is enough space to install Kcptun"
 msgstr "确保有足够的空间安装Kcptun"
 
-msgid "SSR Server Subscribe"
+msgid "Server Subscribe"
 msgstr "服务器订阅"
 
-msgid "Subscribe URL"
-msgstr "订阅网址"
+msgid "SSR Subscribe URL"
+msgstr "SSR订阅网址"
+
+msgid "V2ray Subscribe URL"
+msgstr "V2ray订阅网址"
 
 msgid "Servers unsubscribed will be deleted in next update; Please summit the Subscribe URL first before manually update."
 msgstr "取消订阅的服务器将在下次更新时删除，请先输入订阅网址保存提交之后再更新。"
@@ -427,14 +448,8 @@ msgstr "通过代理订阅"
 msgid "Enable auto update subscribe"
 msgstr "开启自动更新订阅"
 
-msgid "Add the server via the SS/SSR link"
-msgstr "通过SS/SSR链接添加服务器"
-
-msgid "SS/SSR Link"
-msgstr "SS/SSR链接"
-
-msgid "Please fill in the SS/SSR link and then click Add; each line of a link."
-msgstr "请填写SS/SSR链接，然后点击添加服务器按钮。"
+msgid "Add the server via the link"
+msgstr "通过链接添加服务器"
 
 msgid "Add Server"
 msgstr "添加服务器"
@@ -570,6 +585,12 @@ msgstr "伪装类型"
 
 msgid "Using TLS must use the domain name as the server address"
 msgstr "使用TLS必须使用域名作为服务器地址"
+
+msgid "Hide Menu"
+msgstr "隐藏菜单"
+
+msgid "After the hidden to the display, type in the address bar enter the admin/vpn/passwall/show, such as: http://192.168.0.1/cgi-bin/luci/admin/vpn/passwall/show"
+msgstr "当你隐藏后想再次显示，在地址栏后面输入admin/vpn/passwall/show，例如:http://192.168.0.1/cgi-bin/luci/admin/vpn/passwall/show"
 
 msgid "NOT RUNNING"
 msgstr "未运行"

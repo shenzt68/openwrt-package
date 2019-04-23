@@ -7,7 +7,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-server-center
 PKG_VERSION:=1.0
-PKG_RELEASE:=31-20190310
+PKG_RELEASE:=32-20190407
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PO2LMO:=./po2lmo
@@ -16,7 +16,6 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)/config
 menu "Configuration"
-	depends on PACKAGE_$(PKG_NAME)
 	
 config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Python_Server
 	bool "Include ShadowsocksR Python Server"
